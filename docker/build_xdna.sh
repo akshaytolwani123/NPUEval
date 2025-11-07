@@ -10,7 +10,7 @@ else
 fi
 
 cd xdna-driver
-git checkout 0ad5aa3
+git checkout 202610.2.21.21
 git submodule update --init --recursive
 
 cd xrt/build/
