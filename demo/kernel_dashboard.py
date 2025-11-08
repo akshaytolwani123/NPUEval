@@ -245,7 +245,7 @@ def create_trace_visualization(trace_data: dict) -> go.Figure:
         st.error(f"Error creating trace visualization: {e}")
         return go.Figure()
 
-def run_kernel_generation(prompt: str, kernel_name: str, data_type: str, array_size: int, selected_model: str, api_key: str = None, agentic_mode: bool = True, status_text=None, progress_bar=None) -> Dict[str, Any]:
+def run_kernel_generation(prompt: str, kernel_name: str, data_type: str, array_size: int, selected_model: str, api_key: str = None, agentic_mode: bool = True, status_text=None, progress_bar=None, ollama_url=None) -> Dict[str, Any]:
     """
     Run the kernel generation pipeline.
     
@@ -262,24 +262,29 @@ def run_kernel_generation(prompt: str, kernel_name: str, data_type: str, array_s
         # Create a local directory for this run
         output_dir = "streamlit_results"
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # Initialize demo with selected model and local directory
         demo_kwargs = {
-            'model': selected_model,
             'output_dir': output_dir,
             'max_retries': 3 if agentic_mode else 0
         }
-        
+
         # Add API key if provided
         if api_key:
             demo_kwargs['api_key'] = api_key
-        
+
         # Add base_url for Anthropic
         if selected_model.startswith('claude-'):
             demo_kwargs['base_url'] = "https://api.anthropic.com/v1/"
-            
+
+        if selected_model.startswith('ollama'):
+            demo_kwargs['base_url'] = ollama_url
+            selected_model = selected_model.replace('ollama:', '')
+
+        demo_kwargs['model'] = selected_model
+
         demo = NPUKernelDemo(**demo_kwargs)
-        
+
         # Update progress through each step
         if status_text and progress_bar:
             status_text.text("🔧 Compiling kernel...")
@@ -393,7 +398,7 @@ def main():
             ["OpenAI", "Anthropic", "Ollama"],
             help="Choose the LLM provider"
         )
-        
+        ollama_url = None
         if model_provider == "OpenAI":
             # OpenAI API Key input
             api_key = os.environ.get('OPENAI_API_KEY', '')
@@ -432,15 +437,21 @@ def main():
             
         else:  # Ollama
             # Ollama configuration
+            import ollama
+            api_key = None
             ollama_url = st.text_input(
                 "Ollama URL", 
-                value="http://localhost:11434",
+                value="http://localhost:11434/v1",
                 help="URL of your Ollama server"
             )
-            
-            ollama_model = st.text_input(
+
+            client = ollama.Client(host=ollama_url.split('v1')[0])
+            models_info = client.list()
+            model_list = [model.model for model in models_info['models']]
+
+            ollama_model = st.selectbox(
                 "Ollama Model",
-                value="llama3.1:8b",
+                options=sorted(model_list),
                 help="Name of the Ollama model to use"
             )
             selected_model = f"ollama:{ollama_model}"
@@ -558,7 +569,7 @@ def main():
                     
                     try:
                         # Run generation and update progress as we go
-                        result = run_kernel_generation(prompt, kernel_name, data_type, array_size, selected_model, api_key, agentic_mode, status_text, progress_bar)
+                        result = run_kernel_generation(prompt, kernel_name, data_type, array_size, selected_model, api_key, agentic_mode, status_text, progress_bar, ollama_url)
                         
                         progress_bar.progress(100)
                         status_text.text("✅ Generation complete!")
