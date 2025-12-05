@@ -12,4 +12,4 @@ docker run -it \
 	--ulimit memlock=-1 \
 	-v $(pwd):/host:Z \
 	npueval \
-	bash -c "cd /host && python3 scripts/check_xrt_versions.py  && python3 $1"
+	bash -c "cd /host && python3 $1"

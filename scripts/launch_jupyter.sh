@@ -14,4 +14,4 @@ docker run -it \
     -p 8888:8888 \
     -e OPENAI_API_KEY=$OPENAI_API_KEY \
     npueval \
-    bash -c "cd /host && python3 scripts/check_xrt_versions.py && python3 -m jupyterlab --ip=0.0.0.0 --port=8888 --no-browser --allow-root"
+    bash -c "cd /host && python3 -m jupyterlab --ip=0.0.0.0 --port=8888 --no-browser --allow-root"
